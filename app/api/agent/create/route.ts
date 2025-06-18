@@ -4,6 +4,7 @@ import {
   getSystemPrompt,
   defaultPrompts,
   reactPrompts,
+  foundryPrompts,
 } from "../index";
 
 // Helper to call OpenRouter as a Claude/Anthropic stand-in
@@ -54,7 +55,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Missing or invalid prompt" }, { status: 400 });
       }
       // Update the system prompt for DeepSeek
-      const system = `You are an expert developer. Given the following user prompt, describe in your reasoning whether the project should be built using React (for web apps with components, JSX, etc.) or Node.js (for backend/server apps). Use clear language in your reasoning so it is easy to detect which technology is most appropriate.`;
+      const system = `You are an expert developer. Given the following user prompt, describe in your reasoning whether the project should be built using React (for web apps with components, JSX, etc.), Node.js (for backend/server apps), or Foundry (for smart contract/solidity projects). Use clear language in your reasoning so it is easy to detect which technology is most appropriate.`;
       const messages = [{ role: "user", content: prompt }];
       const data = await callOpenRouter(messages, system, 10000);
       let answer = data.choices?.[0]?.message?.content?.trim();
@@ -64,6 +65,14 @@ export async function POST(req: NextRequest) {
       console.log("Model answer:", JSON.stringify(answer));
       const reasoning = answer?.toLowerCase();
       // Heuristic: look for keywords
+      if (reasoning?.includes("foundry") || reasoning?.includes("solidity") || reasoning?.includes("smart contract")) {
+        return NextResponse.json({
+          prompts: [
+            `Here is an artifact that contains all files of the project visible to you.\nConsider the contents of ALL files in the project.\n\n${foundryPrompts.basePrompt}\n\nHere is a list of files that exist on the file system but are not being shown to you:\n\n  - .gitignore\n  - package-lock.json\n`,
+          ],
+          uiPrompts: [foundryPrompts.basePrompt],
+        });
+      }
       if (reasoning?.includes("react") || reasoning?.includes("jsx") || reasoning?.includes("component")) {
         return NextResponse.json({
           prompts: [
