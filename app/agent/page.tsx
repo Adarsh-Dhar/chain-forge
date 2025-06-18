@@ -1,18 +1,24 @@
 "use client";
 
 import React, { useState } from "react";
+import axios from "axios";
 
 export default function AgentPage() {
   const [prompt, setPrompt] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<string[] | string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [prompts, setPrompts] = useState<string[] | null>(null);
+  const [codeServer, setCodeServer] = useState<any>(null);
+  const [csLoading, setCSLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setResult(null);
     setError(null);
+    setPrompts(null);
+    setCodeServer(null);
     try {
       const res = await fetch("/api/agent/create", {
         method: "POST",
@@ -33,8 +39,10 @@ export default function AgentPage() {
       if (res.ok) {
         if (data.prompts && Array.isArray(data.prompts)) {
           setResult(data.prompts);
+          setPrompts(data.prompts);
         } else if (data.uiPrompts && Array.isArray(data.uiPrompts)) {
           setResult(data.uiPrompts);
+          setPrompts(data.uiPrompts);
         } else {
           setError("Server error: Unexpected model response.");
         }
@@ -45,6 +53,19 @@ export default function AgentPage() {
       setError(err.message || "Unknown error");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCreateCodeServer = async () => {
+    if (!prompts) return;
+    setCSLoading(true);
+    try {
+      const res = await axios.post("/api/agent/code-server", { prompts });
+      setCodeServer(res.data.codeServer);
+    } catch (err) {
+      alert("Failed to create code-server.");
+    } finally {
+      setCSLoading(false);
     }
   };
 
@@ -88,6 +109,31 @@ export default function AgentPage() {
                 </pre>
               )
             }
+            {prompts && !codeServer && (
+              <button
+                className="bg-green-600 text-white font-semibold py-2 rounded-lg hover:bg-green-700 transition disabled:opacity-50 mt-4"
+                onClick={handleCreateCodeServer}
+                disabled={csLoading}
+              >
+                {csLoading ? "Creating code-server..." : "Open in code-server"}
+              </button>
+            )}
+            {codeServer && (
+              <div className="mt-6">
+                <h2 className="text-lg font-semibold mb-2 text-gray-700">Your code-server is ready!</h2>
+                <p>
+                  <b>URL:</b> <a href={codeServer.url} target="_blank" rel="noopener noreferrer">{codeServer.url}</a>
+                </p>
+                <p>
+                  <b>Password:</b> {codeServer.password}
+                </p>
+                <iframe
+                  src={codeServer.url}
+                  style={{ width: "100%", height: 600, border: "1px solid #ccc" }}
+                  title="code-server"
+                />
+              </div>
+            )}
           </div>
         )}
       </div>
