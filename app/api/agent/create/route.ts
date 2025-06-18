@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
       // Update the system prompt for DeepSeek
       const system = `You are an expert developer. Given the following user prompt, describe in your reasoning whether the project should be built using React (for web apps with components, JSX, etc.) or Node.js (for backend/server apps). Use clear language in your reasoning so it is easy to detect which technology is most appropriate.`;
       const messages = [{ role: "user", content: prompt }];
-      const data = await callOpenRouter(messages, system, 200);
+      const data = await callOpenRouter(messages, system, 10000);
       let answer = data.choices?.[0]?.message?.content?.trim();
       if (!answer) {
         answer = data.choices?.[0]?.message?.reasoning?.trim();
@@ -104,7 +104,7 @@ export async function POST(req: NextRequest) {
       if (!Array.isArray(messages)) {
         return NextResponse.json({ error: "Missing or invalid messages" }, { status: 400 });
       }
-      const data = await callOpenRouter(messages, getSystemPrompt(), 8000);
+      const data = await callOpenRouter(messages, getSystemPrompt(), 10000);
       return NextResponse.json({
         response: data.choices?.[0]?.message?.content,
       });
