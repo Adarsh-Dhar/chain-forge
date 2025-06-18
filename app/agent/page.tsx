@@ -5,7 +5,7 @@ import React, { useState } from "react";
 export default function AgentPage() {
   const [prompt, setPrompt] = useState("");
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<string | null>(null);
+  const [result, setResult] = useState<string[] | string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -14,7 +14,7 @@ export default function AgentPage() {
     setResult(null);
     setError(null);
     try {
-      const res = await fetch("/api/agent/create-todo", {
+      const res = await fetch("/api/agent/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ prompt }),
@@ -31,9 +31,13 @@ export default function AgentPage() {
       }
       console.log("OpenRouter API response:", data);
       if (res.ok) {
-        // Try to extract the code from the OpenRouter response
-        const code = data.choices?.[0]?.message?.content || JSON.stringify(data);
-        setResult(code);
+        if (data.prompts && Array.isArray(data.prompts)) {
+          setResult(data.prompts);
+        } else if (data.uiPrompts && Array.isArray(data.uiPrompts)) {
+          setResult(data.uiPrompts);
+        } else {
+          setError("Server error: Unexpected model response.");
+        }
       } else {
         setError(data.error || "Something went wrong");
       }
@@ -67,10 +71,23 @@ export default function AgentPage() {
         {error && <div className="mt-4 text-red-500">{error}</div>}
         {result && (
           <div className="mt-6">
-            <h2 className="text-lg font-semibold mb-2 text-gray-700">Generated Code:</h2>
-            <pre className="bg-gray-100 p-4 rounded-lg overflow-x-auto text-sm text-gray-800 whitespace-pre-wrap">
-              {result}
-            </pre>
+            <h2 className="text-lg font-semibold mb-2 text-gray-700">Generated Prompts:</h2>
+            {Array.isArray(result)
+              ? result.map((prompt, idx) => (
+                  <pre
+                    key={idx}
+                    className="bg-gray-100 p-4 rounded-lg overflow-x-auto text-sm text-gray-800 whitespace-pre-wrap mb-4"
+                    style={{ wordBreak: "break-all" }}
+                  >
+                    {prompt}
+                  </pre>
+                ))
+              : (
+                <pre className="bg-gray-100 p-4 rounded-lg overflow-x-auto text-sm text-gray-800 whitespace-pre-wrap">
+                  {result}
+                </pre>
+              )
+            }
           </div>
         )}
       </div>
