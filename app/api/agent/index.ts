@@ -4,3 +4,4 @@ export * as foundryPrompts from './default/foundry';
 export * from './constant';
 export * from './prompt';
 export * from './stripindents'; 
+export { getFoundrySystemPrompt } from './default/foundry'; 
